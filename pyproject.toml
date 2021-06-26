@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "miner_exporter"
+version = "0.1.0"
+description = ""
+authors = ["Your Name <you@example.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+prometheus-client = "^0.11.0"
+psutil = "^5.8.0"
+docker = "^5.0.0"
+python-dateutil = "^2.8.1"
+requests = "^2.25.1"
+
+[tool.poetry.dev-dependencies]
+ipython = "^7.25.0"
+black = "^21.6b0"
+flake8 = "^3.9.2"
+pytest = "^6.2.4"
+docker-compose = "^1.29.2"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
