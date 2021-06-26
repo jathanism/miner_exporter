@@ -1,0 +1,4 @@
+[flake8]
+ignore =
+    # E501 line greater than 80 characters in length (we use a 100-character line length, enforced by Black)
+    E501,

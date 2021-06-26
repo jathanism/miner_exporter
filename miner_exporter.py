@@ -1,20 +1,18 @@
 #!/usr/bin/env python3
 
-# external packages
-import prometheus_client
-import psutil
-import docker
-import requests
-import dateutil.parser
-
 # internal packages
 import datetime
-import time
-import subprocess
-import sys
+import logging
 import os
 import re
-import logging
+import time
+
+# external packages
+import dateutil.parser
+import docker
+import prometheus_client
+import psutil
+import requests
 
 # remember, levels: debug, info, warning, error, critical. there is no trace.
 logging.basicConfig(
@@ -292,7 +290,8 @@ def collect_miner_height(docker_container, miner_name):
     out = docker_container.exec_run("miner info height")
     log.debug(out.output)
     txt = out.output.decode("utf-8").rstrip("\n")
-    VAL.labels("Height", miner_name).set(out.output.split()[1])
+    # VAL.labels("Height", miner_name).set(out.output.split()[1])
+    VAL.labels("Height", miner_name).set(txt.split()[1])
 
 
 def collect_in_consensus(docker_container, miner_name):
@@ -309,7 +308,7 @@ def collect_in_consensus(docker_container, miner_name):
 def collect_block_age(docker_container, miner_name):
     # collect current block age
     out = docker_container.exec_run("miner info block_age")
-    ## transform into a number
+    # transform into a number
     age_val = try_int(out.output.decode("utf-8").rstrip("\n"))
 
     BLOCKAGE.labels("BlockAge", miner_name).set(age_val)
@@ -329,7 +328,8 @@ def collect_hbbft_performance(docker_container, miner_name):
         c = [x.strip() for x in line.split(",")]
         # samples:
 
-        have_data = False
+        # FIXME(jathan): This is unused. Remove?
+        # have_data = False
 
         if len(c) == 7 and miner_name == c[0]:
             # name,bba_completions,seen_votes,last_bba,last_seen,tenure,penalty
@@ -458,7 +458,7 @@ def collect_ledger_validators(docker_container, miner_name):
                 dkg_penalty_val = try_float(dkg_penalty)
                 performance_penalty_val = try_float(performance_penalty)
                 total_penalty_val = try_float(total_penalty)
-                least_heartbeat = try_float(last_heartbeat)
+                # last_heartbeat = try_float(last_heartbeat)
 
                 log.info(f"L penalty: {total_penalty_val}")
                 LEDGER_PENALTY.labels("ledger_penalties", "tenure", miner_name).set(
@@ -503,9 +503,9 @@ if __name__ == "__main__":
         try:
             stats()
         except ValueError as ex:
-            log.error(f"stats loop failed.", exc_info=ex)
+            log.error("stats loop failed.", exc_info=ex)
         except docker.errors.APIError as ex:
-            log.error(f"stats loop failed with a docker error.", exc_info=ex)
+            log.error("stats loop failed with a docker error.", exc_info=ex)
 
         # sleep 30 seconds
         time.sleep(UPDATE_PERIOD)
