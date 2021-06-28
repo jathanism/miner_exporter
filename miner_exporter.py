@@ -172,11 +172,6 @@ class MinerExporter:
         #  'name': None,
         #  'address': None
         # }
-        # FIXME(jathan): This just looks like something here for debug?
-        """
-        if miner_facts:
-            return miner_facts
-        """
 
         # sample output:
         # {pubkey,"1YBkf..."}.
@@ -198,14 +193,13 @@ class MinerExporter:
 
         if v := print_keys.get("pubkey"):
             miner_facts["address"] = v
-        if print_keys.get("animal_name"):
+        if v := print_keys.get("animal_name"):
             miner_facts["name"] = v
 
         # $ docker exec validator miner print_keys
         return miner_facts
 
     def get_miner_name(self):
-        # TODO: need to fix this. hotspot name really should only be queried once
         hotspot_name = self.exec_run("miner info name")
         return hotspot_name
 
@@ -214,7 +208,9 @@ class MinerExporter:
     #
 
     def collect_miner_height(self):
-        # grab the local blockchain height (it returns a 2-tuple)
+        """Grab the local blockchain height."""
+        # It returns a 2-tuple.
+        # 22818           897275
         out = self.exec_run("miner info height")
         VAL.labels("Height", self.miner_name).set(out.split()[1])
 
@@ -269,7 +265,7 @@ class MinerExporter:
         CHAIN_STATS.labels("staked_validators").set(count_val)
 
     def collect_balance(self):
-        api_validators = safe_get_json(f"{API_BASE_URL}/validators/{self.address}")
+        api_validators = safe_get_json(f"{self.api_base_url}/validators/{self.address}")
 
         if not api_validators:
             log.error("validator fetch returned empty JSON")
@@ -281,50 +277,48 @@ class MinerExporter:
         # Owner address
         owner_address = api_validators["data"]["owner"]
 
-        api_accounts = safe_get_json(f"{API_BASE_URL}/accounts/{owner_address}")
+        api_accounts = safe_get_json(f"{self.api_base_url}/accounts/{owner_address}")
         if not api_accounts:
             return
         if not api_accounts.get("data") or not api_accounts["data"].get("balance"):
             return
         balance = float(api_accounts["data"]["balance"]) / 1e8
 
-        # print(api_accounts)
-        # print('balance',balance)
         BALANCE.labels(self.miner_name).set(balance)
 
     def collect_in_consensus(self):
-        # check if currently in consensus group
-        incon_txt = self.exec_run("miner info in_consensus")
+        """Check if currently in consensus group."""
+        in_consensus_txt = self.exec_run("miner info in_consensus")
 
-        incon = 0
-        if incon_txt == "true":
-            incon = 1
+        in_consensus = 0
+        if in_consensus_txt == "true":
+            in_consensus = 1
 
-        log.info(f"in consensus? {incon} / {incon_txt}")
-        INCON.labels(self.miner_name).set(incon)
+        log.info(f"in consensus? %s / %s", in_consensus, in_consensus_txt)
+        INCON.labels(self.miner_name).set(in_consensus)
 
     def collect_block_age(self):
-        # collect current block age & cast to int
+        """Collect current block age & cast to int."""
         age_val = try_int(self.exec_run("miner info block_age"))
         BLOCKAGE.labels("BlockAge", self.miner_name).set(age_val)
-        log.debug(f"age: {age_val}")
+        log.debug("age: %s", age_val)
 
     def collect_miner_version(self):
         out = self.exec_run("miner versions")
         results = out.splitlines()
 
-        # sample output
+        # Sample output
         # $ docker exec validator miner versions
         # Installed versions:
         # * 0.1.48	permanent
         for line in results:
             if m := re.match(r"^\*\s+([\d\.]+)(.*)", line):
                 miner_version = m.group(1)
-                log.info(f"found miner version: {miner_version}")
+                log.info("Found miner version: %s", miner_version)
                 VALIDATOR_VERSION.labels(self.miner_name).info({"version": miner_version})
 
     def collect_ledger_validators(self):
-        # ledger validators output
+        """Collect ledger validators output."""
         out = self.exec_run("miner ledger validators --format csv")
         results = out.splitlines()
 
