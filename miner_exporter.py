@@ -492,6 +492,10 @@ def stats():
     # Docker container with something like cadvisor instead.
     SYSTEM_USAGE.labels("CPU", miner_name).set(psutil.cpu_percent())
     SYSTEM_USAGE.labels("Memory", miner_name).set(psutil.virtual_memory()[2])
+    SYSTEM_USAGE.labels('CPU-Steal', miner_name).set(psutil.cpu_times_percent().steal)
+    SYSTEM_USAGE.labels('Disk Used', miner_name).set(float(psutil.disk_usage('/').used) / float(psutil.disk_usage('/').total))
+    SYSTEM_USAGE.labels('Disk Free', miner_name).set(float(psutil.disk_usage('/').free) / float(psutil.disk_usage('/').total))
+    SYSTEM_USAGE.labels('Process-Count', miner_name).set(sum(1 for proc in psutil.process_iter()))
 
     # Collect all the stats from the miner.
     exporter.collect_container_run_time()
@@ -500,7 +504,8 @@ def stats():
     exporter.collect_miner_height()
     exporter.collect_chain_stats()
     exporter.collect_in_consensus()
-    exporter.collect_ledger_validators()
+    # `miner ledger validators` fails on mainnet, 20210626
+    # exporter.collect_ledger_validators()
     exporter.collect_peer_book()
     exporter.collect_hbbft_performance()
     exporter.collect_balance()
